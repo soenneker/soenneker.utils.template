@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Scriban;
@@ -28,7 +29,7 @@ public class TemplateUtil : ITemplateUtil
     }
 
     public async ValueTask<string> Render(string templateFilePath, Dictionary<string, object> replacements, string? contentFilePath = null,
-        Dictionary<string, string>? partials = null)
+        Dictionary<string, string>? partials = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -38,7 +39,7 @@ public class TemplateUtil : ITemplateUtil
             if (!_fileUtilSync.Exists(templateFilePath))
                 throw new FileNotFoundException($"Template file not found at path: {templateFilePath}");
 
-            string templateText = await _fileUtil.Read(templateFilePath).NoSync();
+            string templateText = await _fileUtil.Read(templateFilePath, cancellationToken).NoSync();
             Scriban.Template? template = Scriban.Template.Parse(templateText);
 
             if (template.HasErrors)
@@ -56,7 +57,7 @@ public class TemplateUtil : ITemplateUtil
                 if (!_fileUtilSync.Exists(contentFilePath))
                     throw new FileNotFoundException($"Content file not found at path: {contentFilePath}");
 
-                string content = await _fileUtil.Read(contentFilePath).NoSync();
+                string content = await _fileUtil.Read(contentFilePath, cancellationToken).NoSync();
                 scriptObject["body"] = content;
             }
 

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Soenneker.Utils.Template.Abstract;
@@ -15,9 +16,7 @@ public interface ITemplateUtil
     /// <param name="replacements">Token dictionary to be applied</param>
     /// <param name="contentFilePath">Optional full path to a body/content file (injected as 'body')</param>
     /// <param name="partials">Optional dictionary of named partial templates</param>
-    ValueTask<string> Render(
-        string templateFilePath,
-        Dictionary<string, object> replacements,
-        string? contentFilePath = null,
-        Dictionary<string, string>? partials = null);
+    /// <param name="cancellationToken"></param>
+    ValueTask<string> Render(string templateFilePath, Dictionary<string, object> replacements, string? contentFilePath = null,
+        Dictionary<string, string>? partials = null, CancellationToken cancellationToken = default);
 }
