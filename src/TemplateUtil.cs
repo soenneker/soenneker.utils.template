@@ -14,7 +14,7 @@ using Soenneker.Extensions.ValueTask;
 
 namespace Soenneker.Utils.Template;
 
-///<inheritdoc cref="ITemplateUtil"/>
+/// <inheritdoc cref="ITemplateUtil"/>
 public class TemplateUtil : ITemplateUtil
 {
     private readonly IFileUtil _fileUtil;
@@ -52,20 +52,30 @@ public class TemplateUtil : ITemplateUtil
                 scriptObject[kvp.Key] = kvp.Value;
             }
 
+            // Render content.html if provided
             if (!contentFilePath.IsNullOrWhiteSpace())
             {
                 if (!_fileUtilSync.Exists(contentFilePath))
                     throw new FileNotFoundException($"Content file not found at path: {contentFilePath}");
 
-                string content = await _fileUtil.Read(contentFilePath, cancellationToken).NoSync();
-                scriptObject["body"] = content;
+                string contentText = await _fileUtil.Read(contentFilePath, cancellationToken).NoSync();
+
+                Scriban.Template? contentTemplate = Scriban.Template.Parse(contentText);
+                if (contentTemplate.HasErrors)
+                    throw new InvalidOperationException($"Content template parse errors: {string.Join(", ", contentTemplate.Messages)}");
+
+                var contentContext = new TemplateContext();
+                contentContext.PushGlobal(scriptObject); // Reuse same variables
+
+                string renderedContent = await contentTemplate.RenderAsync(contentContext).NoSync();
+                scriptObject["Body"] = renderedContent;
             }
 
             if (partials != null)
             {
                 foreach ((string key, string value) in partials)
                 {
-                    // Register each partial as a function that returns raw HTML
+                    // Register partial as a raw HTML-returning function
                     scriptObject[key] = new Func<string>(() => value);
                 }
             }
