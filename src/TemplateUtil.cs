@@ -28,38 +28,6 @@ public sealed class TemplateUtil : ITemplateUtil
         _fileUtilSync = fileUtilSync;
     }
 
-    public static async ValueTask<string> RenderFromString(string templateText, Dictionary<string, object> replacements,
-        Dictionary<string, string>? partials = null)
-    {
-        if (templateText.IsNullOrWhiteSpace())
-            throw new ArgumentException("Template string is required", nameof(templateText));
-
-        Scriban.Template? parsedTemplate = Scriban.Template.Parse(templateText);
-
-        if (parsedTemplate.HasErrors)
-            throw new InvalidOperationException($"Template parse errors: {string.Join(", ", parsedTemplate.Messages)}");
-
-        var scriptObject = new ScriptObject(replacements.Count + (partials?.Count ?? 0));
-
-        foreach (KeyValuePair<string, object> kvp in replacements)
-        {
-            scriptObject.SetValue(kvp.Key, kvp.Value, true);
-        }
-
-        if (partials is {Count: > 0})
-        {
-            foreach ((string key, string value) in partials)
-            {
-                scriptObject.SetValue(key, new Func<string>(() => value), true);
-            }
-        }
-
-        var context = new TemplateContext();
-        context.PushGlobal(scriptObject);
-
-        return await parsedTemplate.RenderAsync(context).NoSync();
-    }
-
     public async ValueTask<string> Render(string templateFilePath, Dictionary<string, object> replacements, string? contentFilePath = null,
         Dictionary<string, string>? partials = null, CancellationToken cancellationToken = default)
     {
