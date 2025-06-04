@@ -11,12 +11,12 @@ namespace Soenneker.Utils.Template.Abstract
     {
         /// <summary>
         /// Renders a Scriban template at the specified <paramref name="templateFilePath"/>,
-        /// using the given <paramref name="replacements"/> and optional <paramref name="partials"/>.
+        /// using the given <paramref name="tokens"/> and optional <paramref name="partials"/>.
         /// </summary>
         /// <param name="templateFilePath">
         /// The file path of the main Scriban template to render.
         /// </param>
-        /// <param name="replacements">
+        /// <param name="tokens">
         /// A dictionary of keys and values to supply as global variables in the template.
         /// </param>
         /// <param name="partials">
@@ -28,7 +28,7 @@ namespace Soenneker.Utils.Template.Abstract
         /// <returns>
         /// A <see cref="ValueTask{TResult}"/> that completes with the rendered output string.
         /// </returns>
-        ValueTask<string> Render(string templateFilePath, Dictionary<string, object> replacements, Dictionary<string, string>? partials = null,
+        ValueTask<string> Render(string templateFilePath, Dictionary<string, object> tokens, Dictionary<string, string>? partials = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace Soenneker.Utils.Template.Abstract
         /// <param name="templateFilePath">
         /// The file path of the main Scriban template to render.
         /// </param>
-        /// <param name="replacements">
+        /// <param name="tokens">
         /// A dictionary of keys and values to supply as global variables in both the content and main templates.
         /// </param>
         /// <param name="contentFilePath">
@@ -58,7 +58,7 @@ namespace Soenneker.Utils.Template.Abstract
         /// <returns>
         /// A <see cref="ValueTask{TResult}"/> that completes with the final rendered output string.
         /// </returns>
-        ValueTask<string> RenderWithContent(string templateFilePath, Dictionary<string, object> replacements, string contentFilePath,
+        ValueTask<string> RenderWithContent(string templateFilePath, Dictionary<string, object> tokens, string contentFilePath,
             string contentPlaceholderKey = "Body", Dictionary<string, string>? partials = null, CancellationToken cancellationToken = default);
     }
 }

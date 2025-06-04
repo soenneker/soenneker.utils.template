@@ -28,7 +28,7 @@ public sealed class TemplateUtil : ITemplateUtil
         _fileUtilSync = fileUtilSync;
     }
 
-    public async ValueTask<string> Render(string templateFilePath, Dictionary<string, object> replacements, Dictionary<string, string>? partials = null,
+    public async ValueTask<string> Render(string templateFilePath, Dictionary<string, object> tokens, Dictionary<string, string>? partials = null,
         CancellationToken cancellationToken = default)
     {
         if (templateFilePath.IsNullOrWhiteSpace())
@@ -45,9 +45,9 @@ public sealed class TemplateUtil : ITemplateUtil
             if (parsedTemplate.HasErrors)
                 throw new InvalidOperationException($"Template parse errors: {string.Join(", ", parsedTemplate.Messages)}");
 
-            // Build a single ScriptObject that contains all replacements + partials
-            var scriptObject = new ScriptObject(replacements.Count + (partials?.Count ?? 0));
-            foreach (KeyValuePair<string, object> kvp in replacements)
+            // Build a single ScriptObject that contains all tokens + partials
+            var scriptObject = new ScriptObject(tokens.Count + (partials?.Count ?? 0));
+            foreach (KeyValuePair<string, object> kvp in tokens)
             {
                 scriptObject.SetValue(kvp.Key, kvp.Value, true);
             }
@@ -73,7 +73,7 @@ public sealed class TemplateUtil : ITemplateUtil
         }
     }
 
-    public async ValueTask<string> RenderWithContent(string templateFilePath, Dictionary<string, object> replacements, string contentFilePath,
+    public async ValueTask<string> RenderWithContent(string templateFilePath, Dictionary<string, object> tokens, string contentFilePath,
         string contentPlaceholderKey = "Body", Dictionary<string, string>? partials = null, CancellationToken cancellationToken = default)
     {
         if (contentFilePath.IsNullOrWhiteSpace())
@@ -89,11 +89,12 @@ public sealed class TemplateUtil : ITemplateUtil
         if (contentTemplate.HasErrors)
             throw new InvalidOperationException($"Content template parse errors: {string.Join(", ", contentTemplate.Messages)}");
 
-        // We reuse the same replacements dictionary, just insert the rendered content under the chosen key
+        // We reuse the same tokens dictionary, just insert the rendered content under the chosen key
         var contentContext = new TemplateContext();
-        // Push existing replacements so contentTemplate can also use them
-        var partialObject = new ScriptObject(replacements.Count);
-        foreach (KeyValuePair<string, object> kvp in replacements)
+        // Push existing tokens so contentTemplate can also use them
+        var partialObject = new ScriptObject(tokens.Count);
+
+        foreach (KeyValuePair<string, object> kvp in tokens)
         {
             partialObject.SetValue(kvp.Key, kvp.Value, true);
         }
@@ -103,9 +104,9 @@ public sealed class TemplateUtil : ITemplateUtil
         string renderedContent = await contentTemplate.RenderAsync(contentContext).NoSync();
 
         // Inject it under contentPlaceholderKey
-        replacements[contentPlaceholderKey] = renderedContent!;
+        tokens[contentPlaceholderKey] = renderedContent!;
 
         // Now call the core Render
-        return await Render(templateFilePath, replacements, partials, cancellationToken).NoSync();
+        return await Render(templateFilePath, tokens, partials, cancellationToken).NoSync();
     }
 }
