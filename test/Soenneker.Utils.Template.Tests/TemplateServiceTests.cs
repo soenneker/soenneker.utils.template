@@ -31,14 +31,14 @@ public class TemplateUtilTests : FixturedUnitTest
         string contentPath = Path.Combine(basePath, "content.html");
         string templatePath = Path.Combine(basePath, "default.html");
 
-        var replacements = new Dictionary<string, object>
+        var tokens = new Dictionary<string, object>
         {
             {"Body", "<p>This is the HTML body content.</p>"},
             {"Message", "Hello from the template!"},
             {"Uri", "https://example.com"}
         };
 
-        string result = await _util.Render(templatePath, replacements, contentPath, null);
+        string result = await _util.RenderWithContent(templatePath, tokens, contentPath, cancellationToken: CancellationToken);
 
         result.Should().Contain("https://example.com");
     }
