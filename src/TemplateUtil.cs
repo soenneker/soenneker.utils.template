@@ -40,7 +40,7 @@ public sealed class TemplateUtil : ITemplateUtil
         try
         {
             // Load & parse main template
-            string templateText = await _fileUtil.Read(templateFilePath, cancellationToken).NoSync();
+            string templateText = await _fileUtil.Read(templateFilePath, true, cancellationToken).NoSync();
             Scriban.Template? parsedTemplate = Scriban.Template.Parse(templateText);
             if (parsedTemplate.HasErrors)
                 throw new InvalidOperationException($"Template parse errors: {string.Join(", ", parsedTemplate.Messages)}");
@@ -83,7 +83,7 @@ public sealed class TemplateUtil : ITemplateUtil
             throw new FileNotFoundException($"Content file not found: {contentFilePath}");
 
         // Render the “content” template into a string first
-        string contentText = await _fileUtil.Read(contentFilePath, cancellationToken).NoSync();
+        string contentText = await _fileUtil.Read(contentFilePath, true, cancellationToken).NoSync();
 
         Scriban.Template? contentTemplate = Scriban.Template.Parse(contentText);
         if (contentTemplate.HasErrors)
