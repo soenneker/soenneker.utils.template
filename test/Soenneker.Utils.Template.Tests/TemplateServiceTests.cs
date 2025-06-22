@@ -3,7 +3,6 @@ using Soenneker.Tests.FixturedUnit;
 using Soenneker.Utils.Template.Abstract;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -28,8 +27,8 @@ public class TemplateUtilTests : FixturedUnitTest
     public async ValueTask Template_should_render()
     {
         string basePath = AppContext.BaseDirectory;
-        string contentPath = Path.Combine(basePath, "content.html");
-        string templatePath = Path.Combine(basePath, "default.html");
+        string contentPath = System.IO.Path.Combine(basePath, "content.html");
+        string templatePath = System.IO.Path.Combine(basePath, "default.html");
 
         var tokens = new Dictionary<string, object>
         {
