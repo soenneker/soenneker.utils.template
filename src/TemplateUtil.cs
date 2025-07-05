@@ -9,7 +9,6 @@ using Scriban.Runtime;
 using Soenneker.Extensions.String;
 using Soenneker.Extensions.ValueTask;
 using Soenneker.Utils.File.Abstract;
-using Soenneker.Utils.FileSync.Abstract;
 using Soenneker.Utils.Template.Abstract;
 
 namespace Soenneker.Utils.Template;
@@ -19,13 +18,11 @@ public sealed class TemplateUtil : ITemplateUtil
 {
     private readonly IFileUtil _fileUtil;
     private readonly ILogger<TemplateUtil> _logger;
-    private readonly IFileUtilSync _fileUtilSync;
 
-    public TemplateUtil(IFileUtil fileUtil, ILogger<TemplateUtil> logger, IFileUtilSync fileUtilSync)
+    public TemplateUtil(IFileUtil fileUtil, ILogger<TemplateUtil> logger)
     {
         _fileUtil = fileUtil;
         _logger = logger;
-        _fileUtilSync = fileUtilSync;
     }
 
     public async ValueTask<string> Render(string templateFilePath, Dictionary<string, object> tokens, Dictionary<string, string>? partials = null,
@@ -34,7 +31,7 @@ public sealed class TemplateUtil : ITemplateUtil
         if (templateFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Template file path is required", nameof(templateFilePath));
 
-        if (!_fileUtilSync.Exists(templateFilePath))
+        if (!await _fileUtil.FileExists(templateFilePath, cancellationToken))
             throw new FileNotFoundException($"Template file not found: {templateFilePath}");
 
         try
@@ -79,7 +76,7 @@ public sealed class TemplateUtil : ITemplateUtil
         if (contentFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Content file path is required", nameof(contentFilePath));
 
-        if (!_fileUtilSync.Exists(contentFilePath))
+        if (!await _fileUtil.FileExists(contentFilePath, cancellationToken))
             throw new FileNotFoundException($"Content file not found: {contentFilePath}");
 
         // Render the “content” template into a string first
