@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Scriban;
 using Scriban.Runtime;
 using Soenneker.Extensions.String;
+using Soenneker.Extensions.Task;
 using Soenneker.Extensions.ValueTask;
 using Soenneker.Utils.File.Abstract;
 using Soenneker.Utils.Template.Abstract;
