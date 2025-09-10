@@ -32,7 +32,7 @@ public sealed class TemplateUtil : ITemplateUtil
         if (templateFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Template file path is required", nameof(templateFilePath));
 
-        if (!await _fileUtil.FileExists(templateFilePath, cancellationToken).NoSync())
+        if (!await _fileUtil.Exists(templateFilePath, cancellationToken).NoSync())
             throw new FileNotFoundException($"Template file not found: {templateFilePath}");
 
         try
@@ -77,7 +77,7 @@ public sealed class TemplateUtil : ITemplateUtil
         if (contentFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Content file path is required", nameof(contentFilePath));
 
-        if (!await _fileUtil.FileExists(contentFilePath, cancellationToken).NoSync())
+        if (!await _fileUtil.Exists(contentFilePath, cancellationToken).NoSync())
             throw new FileNotFoundException($"Content file not found: {contentFilePath}");
 
         // Render the “content” template into a string first
