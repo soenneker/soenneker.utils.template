@@ -14,7 +14,7 @@
         <AssemblyName>Soenneker.Utils.Template</AssemblyName>
         <PackageId>Soenneker.Utils.Template</PackageId>
         <PackageTags>utils template Util templating replacement email rendering render templateUtil util csharp dotnet c# .net</PackageTags>
-        <Copyright>Copyright © 2025 Jake Soenneker</Copyright>
+        <Copyright>Copyright © 2025-2026 Jake Soenneker</Copyright>
         <Authors>Jake Soenneker</Authors>
         <Company>https://soenneker.com</Company>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
