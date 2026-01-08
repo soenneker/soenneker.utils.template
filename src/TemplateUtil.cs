@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,7 @@ using Soenneker.Utils.Template.Abstract;
 
 namespace Soenneker.Utils.Template;
 
-/// <inheritdoc cref="ITemplateUtil"/>
+///<inheritdoc cref="ITemplateUtil"/>
 public sealed class TemplateUtil : ITemplateUtil
 {
     private readonly IFileUtil _fileUtil;
@@ -32,37 +33,27 @@ public sealed class TemplateUtil : ITemplateUtil
         if (templateFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Template file path is required", nameof(templateFilePath));
 
-        if (!await _fileUtil.Exists(templateFilePath, cancellationToken).NoSync())
+        if (!await _fileUtil.Exists(templateFilePath, cancellationToken)
+                            .NoSync())
+
             throw new FileNotFoundException($"Template file not found: {templateFilePath}");
 
         try
         {
-            // Load & parse main template
-            string templateText = await _fileUtil.Read(templateFilePath, true, cancellationToken).NoSync();
-            Scriban.Template? parsedTemplate = Scriban.Template.Parse(templateText);
+            string templateText = await _fileUtil.Read(templateFilePath, true, cancellationToken)
+                                                 .NoSync();
+
+            Scriban.Template parsedTemplate = Scriban.Template.Parse(templateText);
             if (parsedTemplate.HasErrors)
                 throw new InvalidOperationException($"Template parse errors: {string.Join(", ", parsedTemplate.Messages)}");
 
-            // Build a single ScriptObject that contains all tokens + partials
-            var scriptObject = new ScriptObject(tokens.Count + (partials?.Count ?? 0));
-            foreach (KeyValuePair<string, object> kvp in tokens)
-            {
-                scriptObject.SetValue(kvp.Key, kvp.Value, true);
-            }
-
-            if (partials is {Count: > 0})
-            {
-                foreach ((string key, string value) in partials)
-                {
-                    // partial can be a function that returns the raw text to inject, if you want
-                    scriptObject.SetValue(key, new Func<string>(() => value), true);
-                }
-            }
+            ScriptObject globals = BuildGlobals(tokens, partials);
 
             var context = new TemplateContext();
-            context.PushGlobal(scriptObject);
+            context.PushGlobal(globals);
 
-            return await parsedTemplate.RenderAsync(context).NoSync();
+            return await parsedTemplate.RenderAsync(context)
+                                       .NoSync();
         }
         catch (Exception ex)
         {
@@ -77,34 +68,82 @@ public sealed class TemplateUtil : ITemplateUtil
         if (contentFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Content file path is required", nameof(contentFilePath));
 
-        if (!await _fileUtil.Exists(contentFilePath, cancellationToken).NoSync())
+        if (!await _fileUtil.Exists(contentFilePath, cancellationToken)
+                            .NoSync())
             throw new FileNotFoundException($"Content file not found: {contentFilePath}");
 
-        // Render the “content” template into a string first
-        string contentText = await _fileUtil.Read(contentFilePath, true, cancellationToken).NoSync();
+        // Build globals once (tokens + partials), then render content into a string,
+        // then render the main template with an augmented globals object (no mutation of tokens).
+        ScriptObject baseGlobals = BuildGlobals(tokens, partials);
 
-        Scriban.Template? contentTemplate = Scriban.Template.Parse(contentText);
+        string contentText = await _fileUtil.Read(contentFilePath, true, cancellationToken)
+                                            .NoSync();
+        Scriban.Template contentTemplate = Scriban.Template.Parse(contentText);
         if (contentTemplate.HasErrors)
             throw new InvalidOperationException($"Content template parse errors: {string.Join(", ", contentTemplate.Messages)}");
 
-        // We reuse the same tokens dictionary, just insert the rendered content under the chosen key
         var contentContext = new TemplateContext();
-        // Push existing tokens so contentTemplate can also use them
-        var partialObject = new ScriptObject(tokens.Count);
+        contentContext.PushGlobal(baseGlobals);
+
+        string renderedContent = await contentTemplate.RenderAsync(contentContext)
+                                                      .NoSync();
+
+        // Augment globals with the rendered content
+        var finalGlobals = new ScriptObject(baseGlobals.Count + 1);
+        finalGlobals.Import(baseGlobals, renamer: null, filter: null);
+        finalGlobals.SetValue(contentPlaceholderKey, renderedContent, readOnly: true);
+
+        // Render the main template
+        return await RenderWithGlobals(templateFilePath, finalGlobals, cancellationToken)
+            .NoSync();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ScriptObject BuildGlobals(Dictionary<string, object> tokens, Dictionary<string, string>? partials)
+    {
+        int capacity = tokens.Count + (partials?.Count ?? 0);
+        var scriptObject = new ScriptObject(capacity);
 
         foreach (KeyValuePair<string, object> kvp in tokens)
+            scriptObject.SetValue(kvp.Key, kvp.Value, readOnly: true);
+
+        if (partials is { Count: > 0 })
         {
-            partialObject.SetValue(kvp.Key, kvp.Value, true);
+            foreach (KeyValuePair<string, string> kvp in partials)
+            {
+                // Avoid closure allocation: store raw string
+                scriptObject.SetValue(kvp.Key, kvp.Value, readOnly: true);
+            }
         }
 
-        contentContext.PushGlobal(partialObject);
+        return scriptObject;
+    }
 
-        string renderedContent = await contentTemplate.RenderAsync(contentContext).NoSync();
+    private async ValueTask<string> RenderWithGlobals(string templateFilePath, ScriptObject globals, CancellationToken cancellationToken)
+    {
+        if (!await _fileUtil.Exists(templateFilePath, cancellationToken)
+                            .NoSync())
+            throw new FileNotFoundException($"Template file not found: {templateFilePath}");
 
-        // Inject it under contentPlaceholderKey
-        tokens[contentPlaceholderKey] = renderedContent!;
+        try
+        {
+            string templateText = await _fileUtil.Read(templateFilePath, true, cancellationToken)
+                                                 .NoSync();
 
-        // Now call the core Render
-        return await Render(templateFilePath, tokens, partials, cancellationToken).NoSync();
+            Scriban.Template parsedTemplate = Scriban.Template.Parse(templateText);
+            if (parsedTemplate.HasErrors)
+                throw new InvalidOperationException($"Template parse errors: {string.Join(", ", parsedTemplate.Messages)}");
+
+            var context = new TemplateContext();
+            context.PushGlobal(globals);
+
+            return await parsedTemplate.RenderAsync(context)
+                                       .NoSync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to render template: {TemplateFilePath}", templateFilePath);
+            throw;
+        }
     }
 }
