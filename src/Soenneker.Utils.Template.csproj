@@ -42,6 +42,6 @@
 
     <ItemGroup>
         <PackageReference Include="Scriban" Version="6.5.5" />
-        <PackageReference Include="Soenneker.Utils.File" Version="4.0.2088" />
+        <PackageReference Include="Soenneker.Utils.File" Version="4.0.2090" />
     </ItemGroup>
 </Project>
