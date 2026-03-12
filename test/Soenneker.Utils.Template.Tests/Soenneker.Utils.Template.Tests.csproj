@@ -34,7 +34,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Soenneker.Utils.Template.csproj" />
+        <ProjectReference Include="..\..\src\Soenneker.Utils.Template\Soenneker.Utils.Template.csproj" />
     </ItemGroup>
 
     <ItemGroup>
