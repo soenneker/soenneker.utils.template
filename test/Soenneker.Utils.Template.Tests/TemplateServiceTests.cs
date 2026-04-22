@@ -1,29 +1,28 @@
-﻿using AwesomeAssertions;
-using Soenneker.Tests.FixturedUnit;
+using AwesomeAssertions;
+using Soenneker.Tests.HostedUnit;
 using Soenneker.Utils.Template.Abstract;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Xunit;
 
 namespace Soenneker.Utils.Template.Tests;
 
-[Collection("Collection")]
-public class TemplateUtilTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public class TemplateUtilTests : HostedUnitTest
 {
     private readonly ITemplateUtil _util;
 
-    public TemplateUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public TemplateUtilTests(Host host) : base(host)
     {
         _util = Resolve<ITemplateUtil>(true);
     }
 
-    [Fact]
+    [Test]
     public void Default()
     {
     }
 
-    [Fact]
+    [Test]
     public async ValueTask Template_should_render()
     {
         string basePath = AppContext.BaseDirectory;
