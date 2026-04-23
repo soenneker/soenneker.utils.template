@@ -36,7 +36,7 @@ public class TemplateUtilTests : HostedUnitTest
             {"Uri", "https://example.com"}
         };
 
-        string result = await _util.RenderWithContent(templatePath, tokens, contentPath, cancellationToken: CancellationToken);
+        string result = await _util.RenderWithContent(templatePath, tokens, contentPath, cancellationToken: System.Threading.CancellationToken.None);
 
         result.Should().Contain("https://example.com");
     }
