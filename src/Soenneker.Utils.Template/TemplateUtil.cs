@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -20,6 +21,7 @@ public sealed class TemplateUtil : ITemplateUtil
 {
     private readonly IFileUtil _fileUtil;
     private readonly ILogger<TemplateUtil> _logger;
+    private readonly ConcurrentDictionary<string, CachedTemplate> _templateCache = new(StringComparer.Ordinal);
 
     public TemplateUtil(IFileUtil fileUtil, ILogger<TemplateUtil> logger)
     {
@@ -33,19 +35,9 @@ public sealed class TemplateUtil : ITemplateUtil
         if (templateFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Template file path is required", nameof(templateFilePath));
 
-        if (!await _fileUtil.Exists(templateFilePath, cancellationToken)
-                            .NoSync())
-
-            throw new FileNotFoundException($"Template file not found: {templateFilePath}");
-
         try
         {
-            string templateText = await _fileUtil.Read(templateFilePath, true, cancellationToken)
-                                                 .NoSync();
-
-            Scriban.Template parsedTemplate = Scriban.Template.Parse(templateText);
-            if (parsedTemplate.HasErrors)
-                throw new InvalidOperationException($"Template parse errors: {string.Join(", ", parsedTemplate.Messages)}");
+            Scriban.Template parsedTemplate = await GetTemplate(templateFilePath, "Template", cancellationToken).NoSync();
 
             ScriptObject globals = BuildGlobals(tokens, partials);
 
@@ -68,19 +60,11 @@ public sealed class TemplateUtil : ITemplateUtil
         if (contentFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Content file path is required", nameof(contentFilePath));
 
-        if (!await _fileUtil.Exists(contentFilePath, cancellationToken)
-                            .NoSync())
-            throw new FileNotFoundException($"Content file not found: {contentFilePath}");
-
         // Build globals once (tokens + partials), then render content into a string,
         // then render the main template with an augmented globals object (no mutation of tokens).
         ScriptObject baseGlobals = BuildGlobals(tokens, partials);
 
-        string contentText = await _fileUtil.Read(contentFilePath, true, cancellationToken)
-                                            .NoSync();
-        Scriban.Template contentTemplate = Scriban.Template.Parse(contentText);
-        if (contentTemplate.HasErrors)
-            throw new InvalidOperationException($"Content template parse errors: {string.Join(", ", contentTemplate.Messages)}");
+        Scriban.Template contentTemplate = await GetTemplate(contentFilePath, "Content template", cancellationToken).NoSync();
 
         var contentContext = new TemplateContext();
         contentContext.PushGlobal(baseGlobals);
@@ -121,18 +105,9 @@ public sealed class TemplateUtil : ITemplateUtil
 
     private async ValueTask<string> RenderWithGlobals(string templateFilePath, ScriptObject globals, CancellationToken cancellationToken)
     {
-        if (!await _fileUtil.Exists(templateFilePath, cancellationToken)
-                            .NoSync())
-            throw new FileNotFoundException($"Template file not found: {templateFilePath}");
-
         try
         {
-            string templateText = await _fileUtil.Read(templateFilePath, true, cancellationToken)
-                                                 .NoSync();
-
-            Scriban.Template parsedTemplate = Scriban.Template.Parse(templateText);
-            if (parsedTemplate.HasErrors)
-                throw new InvalidOperationException($"Template parse errors: {string.Join(", ", parsedTemplate.Messages)}");
+            Scriban.Template parsedTemplate = await GetTemplate(templateFilePath, "Template", cancellationToken).NoSync();
 
             var context = new TemplateContext();
             context.PushGlobal(globals);
@@ -145,5 +120,24 @@ public sealed class TemplateUtil : ITemplateUtil
             _logger.LogError(ex, "Failed to render template: {TemplateFilePath}", templateFilePath);
             throw;
         }
+    }
+
+    private async ValueTask<Scriban.Template> GetTemplate(string path, string description, CancellationToken cancellationToken)
+    {
+        DateTimeOffset? lastModified = await _fileUtil.GetLastModified(path, cancellationToken).NoSync();
+        if (lastModified is null)
+            throw new FileNotFoundException($"{description} file not found: {path}");
+
+        string cacheKey = Path.GetFullPath(path);
+        if (_templateCache.TryGetValue(cacheKey, out CachedTemplate cached) && cached.LastModified == lastModified.Value)
+            return cached.Template;
+
+        string text = await _fileUtil.Read(path, true, cancellationToken).NoSync();
+        Scriban.Template parsed = Scriban.Template.Parse(text);
+        if (parsed.HasErrors)
+            throw new InvalidOperationException($"{description} parse errors: {string.Join(", ", parsed.Messages)}");
+
+        _templateCache[cacheKey] = new CachedTemplate(lastModified.Value, parsed);
+        return parsed;
     }
 }
