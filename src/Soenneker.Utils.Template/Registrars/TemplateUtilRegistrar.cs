@@ -13,6 +13,7 @@ public static class TemplateUtilRegistrar
     /// <summary>
     /// Adds <see cref="ITemplateUtil"/> as a singleton Util. <para/>
     /// </summary>
+    /// <returns>Adds <see cref="ITemplateUtil"/> as a singleton Util. <para/>.</returns>
     public static IServiceCollection AddTemplateUtilAsSingleton(this IServiceCollection services)
     {
         services.AddFileUtilAsScoped().TryAddSingleton<ITemplateUtil, TemplateUtil>();
@@ -23,6 +24,7 @@ public static class TemplateUtilRegistrar
     /// <summary>
     /// Adds <see cref="ITemplateUtil"/> as a scoped Util. <para/>
     /// </summary>
+    /// <returns>Adds <see cref="ITemplateUtil"/> as a scoped Util. <para/>.</returns>
     public static IServiceCollection AddTemplateUtilAsScoped(this IServiceCollection services)
     {
         services.AddFileUtilAsSingleton().TryAddScoped<ITemplateUtil, TemplateUtil>();
