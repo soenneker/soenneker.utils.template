@@ -4,6 +4,8 @@ using Soenneker.Utils.Template.Abstract;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Soenneker.Utils.Template.Registrars;
 
 namespace Soenneker.Utils.Template.Tests;
 
@@ -20,6 +22,22 @@ public class TemplateUtilTests : HostedUnitTest
     [Test]
     public void Default()
     {
+    }
+
+    [Test]
+    public void Singleton_registration_should_resolve_with_scope_validation()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddTemplateUtilAsSingleton();
+
+        using ServiceProvider provider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+            ValidateScopes = true
+        });
+
+        provider.GetRequiredService<ITemplateUtil>().Should().NotBeNull();
     }
 
     [Test]

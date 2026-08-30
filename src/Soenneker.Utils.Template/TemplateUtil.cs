@@ -16,7 +16,6 @@ using Soenneker.Utils.Template.Abstract;
 
 namespace Soenneker.Utils.Template;
 
-///<inheritdoc cref="ITemplateUtil"/>
 public sealed class TemplateUtil : ITemplateUtil
 {
     private readonly IFileUtil _fileUtil;
@@ -41,7 +40,10 @@ public sealed class TemplateUtil : ITemplateUtil
 
             ScriptObject globals = BuildGlobals(tokens, partials);
 
-            var context = new TemplateContext();
+            var context = new TemplateContext
+            {
+                CancellationToken = cancellationToken
+            };
             context.PushGlobal(globals);
 
             return await parsedTemplate.RenderAsync(context)
@@ -66,7 +68,10 @@ public sealed class TemplateUtil : ITemplateUtil
 
         Scriban.Template contentTemplate = await GetTemplate(contentFilePath, "Content template", cancellationToken).NoSync();
 
-        var contentContext = new TemplateContext();
+        var contentContext = new TemplateContext
+        {
+            CancellationToken = cancellationToken
+        };
         contentContext.PushGlobal(baseGlobals);
 
         string renderedContent = await contentTemplate.RenderAsync(contentContext)
@@ -109,7 +114,10 @@ public sealed class TemplateUtil : ITemplateUtil
         {
             Scriban.Template parsedTemplate = await GetTemplate(templateFilePath, "Template", cancellationToken).NoSync();
 
-            var context = new TemplateContext();
+            var context = new TemplateContext
+            {
+                CancellationToken = cancellationToken
+            };
             context.PushGlobal(globals);
 
             return await parsedTemplate.RenderAsync(context)
