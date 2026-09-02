@@ -3,6 +3,7 @@ using Soenneker.Tests.HostedUnit;
 using Soenneker.Utils.Template.Abstract;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Soenneker.Utils.Template.Registrars;
@@ -41,7 +42,7 @@ public class TemplateUtilTests : HostedUnitTest
     }
 
     [Test]
-    public async ValueTask Template_should_render()
+    public async ValueTask Template_should_render(CancellationToken cancellationToken)
     {
         string basePath = AppContext.BaseDirectory;
         string contentPath = System.IO.Path.Combine(basePath, "content.html");
@@ -54,7 +55,7 @@ public class TemplateUtilTests : HostedUnitTest
             {"Uri", "https://example.com"}
         };
 
-        string result = await _util.RenderWithContent(templatePath, tokens, contentPath, cancellationToken: System.Threading.CancellationToken.None);
+        string result = await _util.RenderWithContent(templatePath, tokens, contentPath, cancellationToken: cancellationToken);
 
         result.Should().Contain("https://example.com");
     }
