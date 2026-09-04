@@ -16,6 +16,7 @@ using Soenneker.Utils.Template.Abstract;
 
 namespace Soenneker.Utils.Template;
 
+/// <inheritdoc cref="ITemplateUtil" />
 public sealed class TemplateUtil : ITemplateUtil
 {
     private readonly IFileUtil _fileUtil;
