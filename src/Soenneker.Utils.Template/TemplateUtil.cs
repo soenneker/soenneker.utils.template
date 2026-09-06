@@ -29,15 +29,16 @@ public sealed class TemplateUtil : ITemplateUtil
         _logger = logger;
     }
 
-    public async ValueTask<string> Render(string templateFilePath, Dictionary<string, object> tokens, Dictionary<string, string>? partials = null,
-        CancellationToken cancellationToken = default)
+    public async ValueTask<string> Render(string templateFilePath, Dictionary<string, object> tokens,
+        Dictionary<string, string>? partials = null, CancellationToken cancellationToken = default)
     {
         if (templateFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Template file path is required", nameof(templateFilePath));
 
         try
         {
-            Scriban.Template parsedTemplate = await GetTemplate(templateFilePath, "Template", cancellationToken).NoSync();
+            Scriban.Template parsedTemplate =
+                await GetTemplate(templateFilePath, "Template", cancellationToken).NoSync();
 
             ScriptObject globals = BuildGlobals(tokens, partials);
 
@@ -47,8 +48,7 @@ public sealed class TemplateUtil : ITemplateUtil
             };
             context.PushGlobal(globals);
 
-            return await parsedTemplate.RenderAsync(context)
-                                       .NoSync();
+            return await parsedTemplate.RenderAsync(context).NoSync();
         }
         catch (Exception ex)
         {
@@ -57,8 +57,9 @@ public sealed class TemplateUtil : ITemplateUtil
         }
     }
 
-    public async ValueTask<string> RenderWithContent(string templateFilePath, Dictionary<string, object> tokens, string contentFilePath,
-        string contentPlaceholderKey = "Body", Dictionary<string, string>? partials = null, CancellationToken cancellationToken = default)
+    public async ValueTask<string> RenderWithContent(string templateFilePath, Dictionary<string, object> tokens,
+        string contentFilePath, string contentPlaceholderKey = "Body", Dictionary<string, string>? partials = null,
+        CancellationToken cancellationToken = default)
     {
         if (contentFilePath.IsNullOrWhiteSpace())
             throw new ArgumentException("Content file path is required", nameof(contentFilePath));
@@ -67,7 +68,8 @@ public sealed class TemplateUtil : ITemplateUtil
         // then render the main template with an augmented globals object (no mutation of tokens).
         ScriptObject baseGlobals = BuildGlobals(tokens, partials);
 
-        Scriban.Template contentTemplate = await GetTemplate(contentFilePath, "Content template", cancellationToken).NoSync();
+        Scriban.Template contentTemplate =
+            await GetTemplate(contentFilePath, "Content template", cancellationToken).NoSync();
 
         var contentContext = new TemplateContext
         {
@@ -75,8 +77,7 @@ public sealed class TemplateUtil : ITemplateUtil
         };
         contentContext.PushGlobal(baseGlobals);
 
-        string renderedContent = await contentTemplate.RenderAsync(contentContext)
-                                                      .NoSync();
+        string renderedContent = await contentTemplate.RenderAsync(contentContext).NoSync();
 
         // Augment globals with the rendered content
         var finalGlobals = new ScriptObject(baseGlobals.Count + 1);
@@ -84,8 +85,7 @@ public sealed class TemplateUtil : ITemplateUtil
         finalGlobals.SetValue(contentPlaceholderKey, renderedContent, readOnly: true);
 
         // Render the main template
-        return await RenderWithGlobals(templateFilePath, finalGlobals, cancellationToken)
-            .NoSync();
+        return await RenderWithGlobals(templateFilePath, finalGlobals, cancellationToken).NoSync();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -109,11 +109,13 @@ public sealed class TemplateUtil : ITemplateUtil
         return scriptObject;
     }
 
-    private async ValueTask<string> RenderWithGlobals(string templateFilePath, ScriptObject globals, CancellationToken cancellationToken)
+    private async ValueTask<string> RenderWithGlobals(string templateFilePath, ScriptObject globals,
+        CancellationToken cancellationToken)
     {
         try
         {
-            Scriban.Template parsedTemplate = await GetTemplate(templateFilePath, "Template", cancellationToken).NoSync();
+            Scriban.Template parsedTemplate =
+                await GetTemplate(templateFilePath, "Template", cancellationToken).NoSync();
 
             var context = new TemplateContext
             {
@@ -121,8 +123,7 @@ public sealed class TemplateUtil : ITemplateUtil
             };
             context.PushGlobal(globals);
 
-            return await parsedTemplate.RenderAsync(context)
-                                       .NoSync();
+            return await parsedTemplate.RenderAsync(context).NoSync();
         }
         catch (Exception ex)
         {
@@ -131,14 +132,16 @@ public sealed class TemplateUtil : ITemplateUtil
         }
     }
 
-    private async ValueTask<Scriban.Template> GetTemplate(string path, string description, CancellationToken cancellationToken)
+    private async ValueTask<Scriban.Template> GetTemplate(string path, string description,
+        CancellationToken cancellationToken)
     {
         DateTimeOffset? lastModified = await _fileUtil.GetLastModified(path, cancellationToken).NoSync();
         if (lastModified is null)
             throw new FileNotFoundException($"{description} file not found: {path}");
 
         string cacheKey = Path.GetFullPath(path);
-        if (_templateCache.TryGetValue(cacheKey, out CachedTemplate cached) && cached.LastModified == lastModified.Value)
+        if (_templateCache.TryGetValue(cacheKey, out CachedTemplate cached) &&
+            cached.LastModified == lastModified.Value)
             return cached.Template;
 
         string text = await _fileUtil.Read(path, true, cancellationToken).NoSync();
