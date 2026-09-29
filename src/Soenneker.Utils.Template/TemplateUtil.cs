@@ -16,7 +16,6 @@ using Soenneker.Utils.Template.Abstract;
 
 namespace Soenneker.Utils.Template;
 
-/// <inheritdoc cref="ITemplateUtil" />
 public sealed class TemplateUtil : ITemplateUtil
 {
     private readonly IFileUtil _fileUtil;
@@ -81,7 +80,8 @@ public sealed class TemplateUtil : ITemplateUtil
 
         // Augment globals with the rendered content
         var finalGlobals = new ScriptObject(baseGlobals.Count + 1);
-        finalGlobals.Import(baseGlobals, renamer: null, filter: null);
+        foreach (KeyValuePair<string, object?> token in baseGlobals)
+            finalGlobals.SetValue(token.Key, token.Value, readOnly: true);
         finalGlobals.SetValue(contentPlaceholderKey, renderedContent, readOnly: true);
 
         // Render the main template

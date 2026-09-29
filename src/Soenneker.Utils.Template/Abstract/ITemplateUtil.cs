@@ -7,6 +7,11 @@ namespace Soenneker.Utils.Template.Abstract
     /// <summary>
     /// Defines methods for rendering Scriban templates with optional content placeholders and partials.
     /// </summary>
+    /// <remarks>
+    /// For Native AOT, supply scalar values and explicit script objects instead of relying on reflection
+    /// over arbitrary CLR objects. Scriban features that dynamically bind CLR members may require
+    /// preserved metadata or runtime code generation; validate the templates used by the application.
+    /// </remarks>
     public interface ITemplateUtil
     {
         /// <summary>
